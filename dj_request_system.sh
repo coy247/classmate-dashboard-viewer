@@ -57,16 +57,31 @@ EOF
 calculate_refresh_rate() {
     local CURRENT_RATE=$(cat "$REFRESH_RATE_FILE" 2>/dev/null || echo "30")
     
-    # Convert to milliseconds and divide by 30
-    local NEW_RATE_MS=$((CURRENT_RATE * 1000 / 30))
-    # Convert back to seconds
-    local NEW_RATE=$((NEW_RATE_MS / 1000))
+    # Each request reduces the interval more aggressively
+    # Using a different approach: divide by 2 for dramatic speedup
+    # But not as extreme as /30 which goes straight to 1s
+    local NEW_RATE
     
-    # Ensure it's never longer than 60 seconds and never negative
+    # Progressive speedup formula
+    if [ $CURRENT_RATE -ge 20 ]; then
+        # Fast reduction at first
+        NEW_RATE=$((CURRENT_RATE * 2 / 3))  # Reduce by 33%
+    elif [ $CURRENT_RATE -ge 10 ]; then
+        # Medium reduction
+        NEW_RATE=$((CURRENT_RATE * 3 / 4))  # Reduce by 25%
+    elif [ $CURRENT_RATE -ge 5 ]; then
+        # Slower reduction near the limit
+        NEW_RATE=$((CURRENT_RATE - 1))  # Reduce by 1 second
+    else
+        # Approaching ludicrous speed
+        NEW_RATE=$((CURRENT_RATE - 1))
+    fi
+    
+    # Ensure it never exceeds 60 seconds (max) or goes below 1 second (min)
     if [ $NEW_RATE -gt 60 ]; then
         NEW_RATE=60
     elif [ $NEW_RATE -le 0 ]; then
-        NEW_RATE=1  # Ludicrous speed!
+        NEW_RATE=1  # Ludicrous speed achieved!
     fi
     
     echo "$NEW_RATE" > "$REFRESH_RATE_FILE"
