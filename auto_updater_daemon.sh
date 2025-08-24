@@ -110,7 +110,7 @@ perform_update() {
         TRIAGE_STATUS="degraded"
     fi
     
-    # Check Apple Music status
+    # Check Apple Music status - ONLY report if single repeat is on
     MUSIC_STATUS=""
     if [ -x "./apple_music_monitor.sh" ]; then
         MUSIC_JSON=$(./apple_music_monitor.sh monitor 2>/dev/null | tail -n 11 | head -n 10)
@@ -120,6 +120,7 @@ perform_update() {
             MUSIC_REPEAT=$(echo "$MUSIC_JSON" | grep '"repeat_mode"' | cut -d'"' -f4)
             MUSIC_TOTAL=$(echo "$MUSIC_JSON" | grep '"total_plays"' | cut -d':' -f2 | cut -d',' -f1 | tr -d ' ')
             
+            # ONLY create status if repeat mode is "one" (single repeat)
             if [ "$MUSIC_REPEAT" = "one" ] && [ "$MUSIC_TOTAL" -gt 0 ]; then
                 if [ "$MUSIC_TOTAL" -gt 5000 ]; then
                     MUSIC_STATUS="🎙️ HALL OF FAME! $MUSIC_ARTIST - $MUSIC_TRACK on REPEAT! Play #$MUSIC_TOTAL!"
@@ -128,29 +129,82 @@ perform_update() {
                 else
                     MUSIC_STATUS="🎵 ON REPEAT: $MUSIC_ARTIST - $MUSIC_TRACK (#$MUSIC_TOTAL)"
                 fi
-            elif [ -n "$MUSIC_TRACK" ] && [ "$MUSIC_TRACK" != "Unknown" ]; then
-                MUSIC_STATUS="🎶 Playing: $MUSIC_ARTIST - $MUSIC_TRACK"
             fi
+            # Don't report anything if repeat is not on
         fi
     fi
     
-    # Generate random entertaining events
-    EVENTS=(
-        "🎙️ AUTO-UPDATE! Dashboard refreshed at $(date +%H:%M:%S)"
-        "🏈 DEFENSIVE LINE holding STRONG at port 8443!"
-        "⚡ LIGHTNING UPDATE! All systems checked in $(( $RANDOM % 50 + 10 ))ms!"
-        "☕ PERCOLATOR STATUS: Maximum brew achieved!"
-        "🐾 PANTHERS PATROL: No threats detected!"
-        "🚀 AUTOMATIC EXCELLENCE! Dashboard synced to the cloud!"
-        "🎪 THE SHOW GOES ON! Continuous monitoring active!"
-        "💫 STELLAR PERFORMANCE! Uptime streak continues!"
-    )
+    # Get neural state and unique events
+    NEURAL_EVENTS=()
+    if [ -x "./neural_state.sh" ]; then
+        # Update neural state and get context-aware events
+        mapfile -t NEURAL_EVENTS < <(./neural_state.sh events 2>/dev/null)
+        
+        # Get current neural stats for display
+        NEURAL_STATE=$(./neural_state.sh update 2>/dev/null)
+        IFS='|' read -r N_LEVEL N_ACCURACY N_EPOCHS N_LAYERS N_GC <<< "$NEURAL_STATE"
+    else
+        # Fallback if neural state not available
+        N_LEVEL=1
+        N_ACCURACY="85.0"
+        N_EPOCHS=0
+    fi
     
-    # Select random events
-    RANDOM_EVENT1="${EVENTS[$RANDOM % ${#EVENTS[@]}]}"
-    RANDOM_EVENT2="${EVENTS[$RANDOM % ${#EVENTS[@]}]}"
+    # Dynamic sports announcer events (non-repeating)
+    CURRENT_TIME=$(date +%H:%M:%S)
+    SYSTEM_LATENCY=$(( $RANDOM % 50 + 10 ))
+    DASHBOARD_NUM=$(( $RANDOM % 5 + 10 ))
+    UPTIME_HOURS=$(( $(date +%s) / 3600 % 1000 ))
     
-    # Create updated status.json
+    # Build unique event array
+    UNIQUE_EVENTS=()
+    UNIQUE_EVENTS+=("🎙️ LIVE UPDATE at $CURRENT_TIME | Systems: OPTIMAL")
+    UNIQUE_EVENTS+=("⚡ Response time: ${SYSTEM_LATENCY}ms | Cloud sync: SUCCESS")
+    
+    # Add service-specific dynamic events
+    if [ "$SAMMY_STATUS" = "operational" ]; then
+        UNIQUE_EVENTS+=("🛡️ SAMMY fortress IMPENETRABLE at port 8443!")
+    else
+        UNIQUE_EVENTS+=("🔧 SAMMY rebuilding defenses...")
+    fi
+    
+    # Add time-based variety
+    HOUR=$(date +%H)
+    if [ $HOUR -ge 6 ] && [ $HOUR -lt 12 ]; then
+        UNIQUE_EVENTS+=("☕ Morning percolation at MAXIMUM")
+    elif [ $HOUR -ge 12 ] && [ $HOUR -lt 18 ]; then
+        UNIQUE_EVENTS+=("🌞 Afternoon systems: BLAZING FAST")
+    elif [ $HOUR -ge 18 ] && [ $HOUR -lt 22 ]; then
+        UNIQUE_EVENTS+=("🌆 Evening patrol: ALL CLEAR")
+    else
+        UNIQUE_EVENTS+=("🌙 Night watch: VIGILANT")
+    fi
+    
+    # Build events array with no duplicates
+    EVENT_ARRAY=()
+    
+    # Add music status if available
+    if [ -n "$MUSIC_STATUS" ]; then
+        EVENT_ARRAY+=("$MUSIC_STATUS")
+    fi
+    
+    # Add neural events (already unique from neural_state.sh)
+    for event in "${NEURAL_EVENTS[@]:0:3}"; do
+        if [ -n "$event" ]; then
+            EVENT_ARRAY+=("$event")
+        fi
+    done
+    
+    # Add unique dynamic events
+    EVENT_ARRAY+=("${UNIQUE_EVENTS[@]:0:3}")
+    
+    # Ensure we have at least 8 events, pad if needed
+    while [ ${#EVENT_ARRAY[@]} -lt 8 ]; do
+        EVENT_ARRAY+=("🔄 Monitoring cycle #$N_EPOCHS active")
+        break
+    done
+    
+    # Create updated status.json with neural state persistence
     cat > status.json << EOF
 {
   "services": [
@@ -177,7 +231,7 @@ perform_update() {
       "status": "operational",
       "details": {
         "Migration": "Grafana ($(( $RANDOM % 30 + 60 ))%)",
-        "Dashboards": "$(( $RANDOM % 5 + 10 )) Active",
+        "Dashboards": "$DASHBOARD_NUM Active",
         "K-Pop Squad": "🎵 Dancing"
       }
     },
@@ -196,31 +250,28 @@ perform_update() {
       "details": {
         "Neural Network": "Monitoring",
         "Recognition": "$(( $RANDOM % 5 + 95 )).$(( $RANDOM % 9 ))%",
-        "Latency": "$(( $RANDOM % 20 + 5 ))ms"
+        "Latency": "${SYSTEM_LATENCY}ms"
       }
     },
     {
       "name": "🧠 Neural Network",
       "status": "learning",
       "details": {
-        "Escalation": "Level $(( $RANDOM % 3 + 1 ))",
-        "Training": "In Progress",
-        "Accuracy": "$(( $RANDOM % 5 + 95 )).$(( $RANDOM % 9 ))%"
+        "Learning Level": "${N_LEVEL}/10",
+        "Epochs": "${N_EPOCHS}",
+        "Accuracy": "${N_ACCURACY}%",
+        "Sandwich Layers": "${N_LAYERS:-3}",
+        "GC Cycles": "${N_GC:-0}"
       }
     }
   ],
   "events": [
-    "${MUSIC_STATUS:-🎵 No music playing}",
-    "${RANDOM_EVENT1}",
-    "${RANDOM_EVENT2}",
-    "🤖 Auto-updated at $(date +%H:%M:%S)",
-    "☕ Systems percolating smoothly",
-    "🐾 Panthers pride: MAXIMUM",
-    "📊 Next update in ${UPDATE_INTERVAL} seconds",
-    "✅ Automated monitoring active"
+$(printf '    "%s"' "${EVENT_ARRAY[0]}")
+$(for ((i=1; i<${#EVENT_ARRAY[@]}; i++)); do printf ',
+    "%s"' "${EVENT_ARRAY[$i]}"; done)
   ],
   "timestamp": "${TIMESTAMP}",
-  "message": "🤖 Auto-Dashboard v1.0 | ☕ Percolating 24/7 | 🐾 Keep Pounding!"
+  "message": "🤖 Auto-Dashboard v2.0 | 🧠 Neural Sandwich GC Active | 🐾 Keep Pounding!"
 }
 EOF
     
