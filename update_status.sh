@@ -44,9 +44,23 @@ update_status() {
         TRIAGE_STATUS="degraded"
     fi
     
-    # Check Apple Music status
+    # Check Apple Music status with real-time loop tracking
     MUSIC_STATUS=""
-    if [ -x "./apple_music_monitor.sh" ]; then
+    
+    # Try loop tracker first for real-time counts
+    if [ -x "./loop_tracker.sh" ]; then
+        # Track any new loops
+        ./loop_tracker.sh track 2>/dev/null
+        # Get formatted status with actual count
+        LOOP_STATUS=$(./loop_tracker.sh status 2>/dev/null)
+        
+        if [ -n "$LOOP_STATUS" ]; then
+            MUSIC_STATUS="$LOOP_STATUS"
+        fi
+    fi
+    
+    # Fallback to apple_music_monitor if no loop status
+    if [ -z "$MUSIC_STATUS" ] && [ -x "./apple_music_monitor.sh" ]; then
         MUSIC_JSON=$(./apple_music_monitor.sh monitor 2>/dev/null | tail -n 11 | head -n 10)
         if echo "$MUSIC_JSON" | grep -q "apple_music"; then
             # Extract music data
@@ -61,7 +75,7 @@ update_status() {
                 if [ "$MUSIC_TOTAL" -gt 5000 ]; then
                     MUSIC_STATUS="🎙️ HALL OF FAME ALERT! $MUSIC_ARTIST - $MUSIC_TRACK on ETERNAL REPEAT! Play #$MUSIC_TOTAL - LEGENDARY!"
                 elif [ "$MUSIC_TOTAL" -gt 1000 ]; then
-                    MUSIC_STATUS="🔥 REPEAT CHAMPIONSHIP! $MUSIC_ARTIST - $MUSIC_TRACK for the ${MUSIC_TOTAL}th time! OBSESSION LEVEL: MAXIMUM!"
+                    MUSIC_STATUS="🔥 OBSESSION MODE! $MUSIC_ARTIST - $MUSIC_TRACK x${MUSIC_TOTAL}!"
                 else
                     MUSIC_STATUS="🎵 REPEAT MODE ACTIVATED! $MUSIC_ARTIST - $MUSIC_TRACK (Play #$MUSIC_TOTAL) - Can't stop, won't stop!"
                 fi
