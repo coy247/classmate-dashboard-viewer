@@ -73,11 +73,6 @@ get_loop_count() {
     
     local COUNT=$(jq -r ".\"$SONG_KEY\" // 0" "$LOOP_STATE_FILE" 2>/dev/null || echo "0")
     
-    # Add base count for El Sonidito (your existing plays)
-    if [[ "$CURRENT_TRACK" == *"Sonidito"* ]]; then
-        COUNT=$((COUNT + 1283))
-    fi
-    
     echo "$COUNT"
 }
 
