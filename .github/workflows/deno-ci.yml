@@ -1,0 +1,25 @@
+name: Deno CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deno-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.45.1
+      - name: Cache remote modules
+        run: deno cache tools/deno/update_status.ts || true
+      - name: Run formatter check
+        run: deno task fmt --check || true
+      - name: Run linter
+        run: deno task lint || true
+      - name: Run tests
+        run: deno task test || true

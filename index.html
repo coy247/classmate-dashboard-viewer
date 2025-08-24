@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>🐾 Panther Pride Dashboard - DJ Edition</title>
     <style>
         * {
@@ -742,7 +745,15 @@ A rival mascot has infiltrated the queue!
         // Update dashboard
         async function updateDashboard() {
             try {
-                const response = await fetch('status.json?t=' + Date.now());
+                // Force cache bypass with timestamp and no-cache headers
+                const response = await fetch('status.json?t=' + Date.now(), {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
                 const data = await response.json();
                 
                 // Update timestamp
@@ -832,8 +843,30 @@ A rival mascot has infiltrated the queue!
             ).join('');
         }
         
+        // Force reload on visibility change (tab switching)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Page became visible, force update
+                updateDashboard();
+            }
+        });
+        
+        // Clear old cache on load
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    caches.delete(name);
+                });
+            });
+        }
+        
         // Initialize
         window.addEventListener('load', () => {
+            // Force reload if page was loaded from cache
+            if (performance.navigation.type === 2) {
+                location.reload(true);
+            }
+            
             loadPantherInfo();
             displayHistory();
             updateDashboard();

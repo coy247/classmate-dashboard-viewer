@@ -1,0 +1,20 @@
+{
+  "fmt": {
+    "options": {
+      "useTabs": false,
+      "lineWidth": 80
+    }
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "importMap": "import_map.json",
+  "tasks": {
+    "update": "deno run --allow-read --allow-write tools/deno/update_status.ts",
+    "fmt": "fmt",
+    "lint": "lint",
+    "test": "test"
+  }
+}
