@@ -110,27 +110,31 @@ perform_update() {
         TRIAGE_STATUS="degraded"
     fi
     
-    # Check Apple Music status - ONLY report if single repeat is on
+    # Track loops in real-time first
+    if [ -x "./loop_tracker.sh" ]; then
+        ./loop_tracker.sh track 2>/dev/null
+    fi
+    
+    # Check Apple Music status with real-time loop count
     MUSIC_STATUS=""
-    if [ -x "./apple_music_monitor.sh" ]; then
-        # Get the full output first
-        FULL_OUTPUT=$(./apple_music_monitor.sh monitor 2>/dev/null)
+    if [ -x "./loop_tracker.sh" ]; then
+        # Get real-time loop status
+        MUSIC_STATUS=$(./loop_tracker.sh status 2>/dev/null)
         
-        # Extract just the JSON part (last 10 lines)
+        if [ -n "$MUSIC_STATUS" ]; then
+            log_message INFO "Music status: $MUSIC_STATUS"
+        fi
+    elif [ -x "./apple_music_monitor.sh" ]; then
+        # Fallback to old method
+        FULL_OUTPUT=$(./apple_music_monitor.sh monitor 2>/dev/null)
         MUSIC_JSON=$(echo "$FULL_OUTPUT" | tail -n 10)
         
-        # Check if we have valid JSON with apple_music
         if echo "$MUSIC_JSON" | grep -q '"apple_music"'; then
-            # Extract fields more reliably
             MUSIC_TRACK=$(echo "$MUSIC_JSON" | grep '"track":' | sed 's/.*"track": "\([^"]*\)".*/\1/')
             MUSIC_ARTIST=$(echo "$MUSIC_JSON" | grep '"artist":' | sed 's/.*"artist": "\([^"]*\)".*/\1/')
             MUSIC_REPEAT=$(echo "$MUSIC_JSON" | grep '"repeat_mode":' | sed 's/.*"repeat_mode": "\([^"]*\)".*/\1/')
             MUSIC_TOTAL=$(echo "$MUSIC_JSON" | grep '"total_plays":' | sed 's/.*"total_plays": \([0-9]*\).*/\1/')
             
-            # Debug log
-            log_message INFO "Music detected: $MUSIC_ARTIST - $MUSIC_TRACK | Repeat: $MUSIC_REPEAT | Plays: $MUSIC_TOTAL"
-            
-            # ONLY create status if repeat mode is "one" (single repeat)
             if [ "$MUSIC_REPEAT" = "one" ] && [ -n "$MUSIC_TOTAL" ] && [ "$MUSIC_TOTAL" -gt 0 ]; then
                 if [ "$MUSIC_TOTAL" -gt 5000 ]; then
                     MUSIC_STATUS="🎙️ HALL OF FAME! $MUSIC_ARTIST - $MUSIC_TRACK on REPEAT! Play #$MUSIC_TOTAL!"
@@ -139,7 +143,6 @@ perform_update() {
                 else
                     MUSIC_STATUS="🎵 ON REPEAT: $MUSIC_ARTIST - $MUSIC_TRACK (#$MUSIC_TOTAL)"
                 fi
-                log_message INFO "Music status set: $MUSIC_STATUS"
             fi
         fi
     fi
