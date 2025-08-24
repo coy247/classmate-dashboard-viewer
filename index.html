@@ -451,6 +451,24 @@
         let currentRefreshRate = 30;
         let barOpen = false;
         
+        // Clean up erroneous history entries
+        function cleanupHistory() {
+            let cleaned = false;
+            historyData = historyData.map(entry => {
+                if (entry.event && entry.event.includes('1283th time')) {
+                    cleaned = true;
+                    entry.event = entry.event.replace('for the 1283th time', 'x1283');
+                    entry.event = entry.event.replace('REPEAT CHAMPIONSHIP!', 'OBSESSION MODE!');
+                }
+                return entry;
+            });
+            
+            if (cleaned) {
+                localStorage.setItem('dashboardHistory', JSON.stringify(historyData));
+                console.log('✅ Cleaned up erroneous history entries');
+            }
+        }
+        
         // Cookie management
         function setCookie(name, value, days) {
             const expires = new Date(Date.now() + days * 864e5).toUTCString();
@@ -867,6 +885,7 @@ A rival mascot has infiltrated the queue!
                 location.reload(true);
             }
             
+            cleanupHistory();  // Clean any erroneous entries
             loadPantherInfo();
             displayHistory();
             updateDashboard();
