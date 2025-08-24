@@ -347,16 +347,33 @@
                 
                 <div class="form-group">
                     <label>Are you a Panther? 🐾</label>
-                    <select id="isPanther" required>
+                    <select id="isPanther" required onchange="toggleMascotFields()">
                         <option value="">Select...</option>
                         <option value="y">Yes - Go Panthers!</option>
                         <option value="n">No - Just visiting</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" id="gradYearField">
                     <label>Graduation Year (YYYY)</label>
                     <input type="text" id="gradYear" placeholder="e.g., 1995 or 95" maxlength="4" />
+                </div>
+                
+                <!-- Non-Panther fields -->
+                <div class="form-group" id="rivalMascotField" style="display: none;">
+                    <label>What's YOUR mascot? 🎭</label>
+                    <input type="text" id="rivalMascot" placeholder="e.g., Eagles, Tigers, etc." maxlength="50" />
+                </div>
+                
+                <div class="form-group" id="rivalSchoolField" style="display: none;">
+                    <label>Your High School (optional) 🏫</label>
+                    <input type="text" id="rivalSchool" placeholder="School name" maxlength="100" />
+                </div>
+                
+                <div id="identityWarning" style="display: none; background: rgba(255,0,0,0.2); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                    ⚠️ <strong>WARNING:</strong> I could steal your identity with this info! 😈<br>
+                    Just kidding... OR AM I? 🤔<br>
+                    <span style="font-size: 0.9em;">Never reveal your mascot online or I'll haunt you with repeat music because I love you SO MUCH! ❤️ Protect your data from Big Brother!</span>
                 </div>
                 
                 <div class="form-group">
@@ -373,7 +390,22 @@
                     🎧 Queue This Song!
                 </button>
                 
+                <div id="queueWaitTime" style="margin-top: 10px; text-align: center; font-size: 0.9em; color: #ffd700;">
+                    ⏱️ Estimated wait: <span id="waitTime">Calculating...</span>
+                </div>
+                
                 <div id="requestStatus" style="margin-top: 15px; text-align: center;"></div>
+                
+                <!-- Karaoke Display -->
+                <div id="karaokeDisplay" style="display: none; margin-top: 20px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; font-family: monospace;">
+                    <pre id="karaokeText"></pre>
+                </div>
+                
+                <!-- Loop Champions Display -->
+                <div id="loopChampions" style="margin-top: 20px; padding: 15px; background: rgba(255,215,0,0.2); border-radius: 10px; display: none;">
+                    <h4>🔁 LOOP CHAMPIONS (500+ plays)</h4>
+                    <div id="championsList"></div>
+                </div>
             </div>
         </div>
         
@@ -429,14 +461,50 @@
             }, '');
         }
         
+        // Toggle mascot fields for non-Panthers
+        function toggleMascotFields() {
+            const isPanther = document.getElementById('isPanther').value;
+            const gradYearField = document.getElementById('gradYearField');
+            const rivalMascotField = document.getElementById('rivalMascotField');
+            const rivalSchoolField = document.getElementById('rivalSchoolField');
+            const identityWarning = document.getElementById('identityWarning');
+            
+            if (isPanther === 'n') {
+                // Show rival fields, hide grad year
+                gradYearField.style.display = 'none';
+                rivalMascotField.style.display = 'block';
+                rivalSchoolField.style.display = 'block';
+                identityWarning.style.display = 'block';
+                
+                // Show warning animation
+                setTimeout(() => {
+                    identityWarning.style.animation = 'pulse 2s infinite';
+                }, 100);
+            } else {
+                // Show grad year, hide rival fields
+                gradYearField.style.display = 'block';
+                rivalMascotField.style.display = 'none';
+                rivalSchoolField.style.display = 'none';
+                identityWarning.style.display = 'none';
+            }
+        }
+        
         // Load saved Panther info
         function loadPantherInfo() {
             const isPanther = getCookie('isPanther');
             const gradYear = getCookie('gradYear');
+            const rivalMascot = getCookie('rivalMascot');
+            const rivalSchool = getCookie('rivalSchool');
             
             if (isPanther) {
                 document.getElementById('isPanther').value = isPanther;
-                document.getElementById('gradYear').value = gradYear;
+                if (isPanther === 'y') {
+                    document.getElementById('gradYear').value = gradYear;
+                } else {
+                    document.getElementById('rivalMascot').value = rivalMascot || '';
+                    document.getElementById('rivalSchool').value = rivalSchool || '';
+                }
+                toggleMascotFields();
                 document.getElementById('cookieNotice').classList.add('show');
                 setTimeout(() => {
                     document.getElementById('cookieNotice').classList.remove('show');
@@ -469,10 +537,13 @@
         // Submit DJ Request
         async function submitDJRequest() {
             const isPanther = document.getElementById('isPanther').value;
-            const gradYear = document.getElementById('gradYear').value;
             const songTitle = sanitizeInput(document.getElementById('songTitle').value);
             const artist = sanitizeInput(document.getElementById('artist').value);
             const statusDiv = document.getElementById('requestStatus');
+            const karaokeDisplay = document.getElementById('karaokeDisplay');
+            const karaokeText = document.getElementById('karaokeText');
+            
+            let userInfo = '';
             
             // Validation
             if (!isPanther) {
@@ -480,10 +551,39 @@
                 return;
             }
             
-            const correctedYear = correctGradYear(gradYear);
-            if (!correctedYear) {
-                statusDiv.innerHTML = '❌ Please enter a valid graduation year';
-                return;
+            if (isPanther === 'y') {
+                const gradYear = document.getElementById('gradYear').value;
+                const correctedYear = correctGradYear(gradYear);
+                if (!correctedYear) {
+                    statusDiv.innerHTML = '❌ Please enter a valid graduation year';
+                    return;
+                }
+                userInfo = `Panther ${correctedYear}`;
+                setCookie('gradYear', correctedYear, 30);
+            } else {
+                const rivalMascot = sanitizeInput(document.getElementById('rivalMascot').value);
+                const rivalSchool = sanitizeInput(document.getElementById('rivalSchool').value) || 'Unknown School';
+                
+                if (!rivalMascot) {
+                    statusDiv.innerHTML = '❌ Please enter your mascot (we need to mock you properly!)';
+                    return;
+                }
+                
+                userInfo = `${rivalMascot} from ${rivalSchool}`;
+                setCookie('rivalMascot', rivalMascot, 30);
+                setCookie('rivalSchool', rivalSchool, 30);
+                
+                // Show rivalry message
+                const rivalryMessages = [
+                    `Oh look, a ${rivalMascot} from ${rivalSchool} thinks they have taste in music!`,
+                    `A wild ${rivalMascot} appears! They probably can't even spell 'Panther'!`,
+                    `${rivalSchool}'s ${rivalMascot} in the house! Did you get lost on the way to mediocrity?`,
+                    `Welcome ${rivalMascot}! Your song choice probably matches your school spirit: questionable!`,
+                    `A ${rivalMascot}? In OUR queue? This is why Panthers rule the jungle!`
+                ];
+                
+                statusDiv.innerHTML = `🎭 ${rivalryMessages[Math.floor(Math.random() * rivalryMessages.length)]}`;
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             if (!songTitle || !artist) {
@@ -493,19 +593,57 @@
             
             // Save to cookies
             setCookie('isPanther', isPanther, 30);
-            setCookie('gradYear', correctedYear, 30);
             
             // Show loading
             statusDiv.innerHTML = '<div class="loading"></div> Queuing your request...';
             document.getElementById('submitRequest').disabled = true;
             
+            // Update wait time
+            const waitTime = Math.floor(Math.random() * 15) + 3; // 3-18 minutes
+            document.getElementById('waitTime').textContent = `${waitTime} minutes`;
+            
             // Simulate request (in real implementation, this would call the backend)
             setTimeout(() => {
-                // Calculate new refresh rate (ludicrous speed!)
-                currentRefreshRate = Math.max(1, Math.floor(currentRefreshRate / 1.5));
+                // Calculate new refresh rate (progressive speedup)
+                if (currentRefreshRate >= 20) {
+                    currentRefreshRate = Math.floor(currentRefreshRate * 2 / 3);
+                } else if (currentRefreshRate >= 10) {
+                    currentRefreshRate = Math.floor(currentRefreshRate * 3 / 4);
+                } else {
+                    currentRefreshRate = Math.max(1, currentRefreshRate - 1);
+                }
                 updateRefreshRate(currentRefreshRate);
                 
-                statusDiv.innerHTML = `✅ "${songTitle}" by ${artist} queued! 🎵`;
+                // Show karaoke display
+                if (isPanther === 'y') {
+                    karaokeText.textContent = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎤 NOW PLAYING: PANTHER REQUESTED SONG
+🎵 ${songTitle} by ${artist}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎤 ● ○ ○ ○ ○ ○ ○ ○ ○ ○
+[Lyrics display disabled for copyright]
+[Imagine a bouncing ball here!]
+🎵 ♪ ♫ ♪ ♫ ♪ ♫ ♪ ♫ ♪
+
+🐾 PANTHER PRIDE SELECTION 🐾`;
+                } else {
+                    karaokeText.textContent = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎤 NOW PLAYING: GUEST REQUEST
+🎵 ${songTitle} by ${artist}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ NON-PANTHER ALERT ⚠️
+A rival mascot has infiltrated the queue!
+
+🎤 ● ○ ○ ○ ○ ○ ○ ○ ○ ○
+[Karaoke mode activated]
+[No lyrics shown - we don't trust outsiders]`;
+                }
+                
+                karaokeDisplay.style.display = 'block';
+                
+                statusDiv.innerHTML = `✅ "${songTitle}" by ${artist} queued! 🎵<br>⏱️ Wait time: ${waitTime} minutes`;
                 document.getElementById('submitRequest').disabled = false;
                 
                 // Clear form
@@ -513,7 +651,12 @@
                 document.getElementById('artist').value = '';
                 
                 // Add to history
-                addToHistory(`DJ Request: ${songTitle} by ${artist} (${isPanther === 'y' ? 'Panther' : 'Guest'} ${correctedYear})`);
+                addToHistory(`DJ Request: ${songTitle} by ${artist} (${userInfo})`);
+                
+                // Hide karaoke after 5 seconds
+                setTimeout(() => {
+                    karaokeDisplay.style.display = 'none';
+                }, 5000);
             }, 2000);
         }
         
