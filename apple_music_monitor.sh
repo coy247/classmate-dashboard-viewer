@@ -115,6 +115,7 @@ monitor_apple_music() {
     # Check if Apple Music is running
     if [ "$(check_apple_music)" = "false" ]; then
         echo "Apple Music is not running"
+        echo '{"apple_music": {"status": "not_running"}}'
         return
     fi
     
@@ -160,7 +161,7 @@ monitor_apple_music() {
 EOF
     else
         echo "Apple Music is $PLAYER_STATE"
-        echo '{"apple_music": {"status": "'$PLAYER_STATE'"}}'
+        echo "{\"apple_music\": {\"status\": \"${PLAYER_STATE}\"}}"
     fi
 }
 
