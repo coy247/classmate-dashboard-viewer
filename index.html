@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Ed's Epic Service Monitor - Classmate Viewer 🎪</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        /* Panthers 95 & Percolator Theme */
+        :root {
+            --panthers-blue: #0085CA;
+            --panthers-silver: #BFC0BF;
+            --panthers-black: #101820;
+            --coffee-brown: #6F4E37;
+            --coffee-cream: #F5E6D3;
+            --status-good: #10B981;
+            --status-warn: #F59E0B;
+            --status-error: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0085CA, #101820);
+            min-height: 100vh;
+            color: #F5E6D3;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+            margin-bottom: 10px;
+        }
+
+        .percolator-box {
+            background: linear-gradient(135deg, #6F4E37, #3C2415);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .percolator-lyrics {
+            font-style: italic;
+            font-size: 1.2em;
+            margin: 20px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--panthers-silver);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 133, 202, 0.5);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .service-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-operational { background: var(--status-good); }
+        .status-degraded { background: var(--status-warn); }
+        .status-failed { background: var(--status-error); }
+
+        .status-details {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .status-metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(191, 192, 191, 0.2);
+        }
+
+        .activity-feed {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid var(--panthers-blue);
+        }
+
+        .timestamp {
+            color: var(--panthers-silver);
+            font-size: 0.8em;
+        }
+
+        .update-notice {
+            text-align: center;
+            padding: 20px;
+            background: rgba(245, 158, 11, 0.2);
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.5em;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .panthers-logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .coffee-steam {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 3em;
+            animation: steam 3s infinite;
+        }
+
+        @keyframes steam {
+            0%, 100% { opacity: 0.5; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-20px); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .status-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="panthers-logo">🐾</div>
+    <div class="coffee-steam">☕</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Ed's Epic Service Monitor 🎪</h1>
+            <p>Live Dashboard for Classmate Entertainment</p>
+            <p style="margin-top: 10px;">⚡ Powered by Panthers '95 & Coffee ☕</p>
+        </div>
+
+        <div class="percolator-box">
+            <h2>☕ The Percolator Chronicles ☕</h2>
+            <div class="percolator-lyrics">
+                🎵 "It's time for the percolator... It's time for the percolator..." 🎵
+            </div>
+            <p>Our services are always percolating at peak performance!</p>
+        </div>
+
+        <div id="loading" class="loading">
+            ⏳ Loading service status...
+        </div>
+
+        <div id="error" class="error-message" style="display: none;">
+            ⚠️ Unable to fetch live data. Showing last known status.
+        </div>
+
+        <div id="statusGrid" class="status-grid" style="display: none;">
+            <!-- Service cards will be dynamically inserted here -->
+        </div>
+
+        <div id="activityFeed" class="activity-feed" style="display: none;">
+            <h2>📡 Recent Activity</h2>
+            <div id="feedContent">
+                <!-- Feed items will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div class="update-notice">
+            <p>📊 This dashboard updates every 30 seconds</p>
+            <p>🔒 Secure read-only view - No CLI access</p>
+            <p id="lastUpdate">Last update: Never</p>
+        </div>
+    </div>
+
+    <script>
+        // Service status data (will be updated from status.json)
+        let statusData = {
+            services: [
+                {
+                    name: "🔧 SAMMY Service",
+                    status: "operational",
+                    details: {
+                        "Port": "8443 (HTTPS)",
+                        "SSL": "✅ Enabled",
+                        "Health": "100%"
+                    }
+                },
+                {
+                    name: "🏛️ CONSORTIUM",
+                    status: "operational",
+                    details: {
+                        "Self-Regulation": "Active",
+                        "Health": "98%",
+                        "Auto-Heal": "✅ Enabled"
+                    }
+                },
+                {
+                    name: "🍭 CANDY Interface",
+                    status: "operational",
+                    details: {
+                        "Migration": "Grafana (65%)",
+                        "Dashboards": "12 Active",
+                        "K-Pop Squad": "🎵 Dancing"
+                    }
+                },
+                {
+                    name: "⚡ TRIAGE CLI",
+                    status: "operational",
+                    details: {
+                        "Imports": "✅ Resolved",
+                        "Modules": "All Loaded",
+                        "Performance": "Optimized"
+                    }
+                },
+                {
+                    name: "🎙️ VOICE System",
+                    status: "operational",
+                    details: {
+                        "Neural Network": "Monitoring",
+                        "Recognition": "99.2%",
+                        "Latency": "12ms"
+                    }
+                },
+                {
+                    name: "🧠 Neural Network",
+                    status: "learning",
+                    details: {
+                        "Escalation": "Level 3",
+                        "Training": "In Progress",
+                        "Accuracy": "97.8%"
+                    }
+                }
+            ],
+            events: [
+                "☕ System percolating smoothly",
+                "🐾 Panthers defense active",
+                "🍭 Candy Consortium patrol complete"
+            ],
+            timestamp: new Date().toISOString()
+        };
+
+        // Render status cards
+        function renderStatusCards() {
+            const grid = document.getElementById('statusGrid');
+            grid.innerHTML = '';
+            
+            statusData.services.forEach(service => {
+                const card = document.createElement('div');
+                card.className = 'status-card';
+                
+                const statusClass = service.status === 'operational' ? 'status-operational' :
+                                   service.status === 'degraded' ? 'status-degraded' :
+                                   service.status === 'learning' ? 'status-degraded' : 'status-failed';
+                
+                const statusText = service.status === 'learning' ? 'LEARNING' : service.status.toUpperCase();
+                
+                let detailsHTML = '';
+                for (const [key, value] of Object.entries(service.details)) {
+                    detailsHTML += `
+                        <div class="status-metric">
+                            <span>${key}:</span>
+                            <span>${value}</span>
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div class="status-header">
+                        <span class="service-name">${service.name}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="status-details">
+                        ${detailsHTML}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Render activity feed
+        function renderActivityFeed() {
+            const feed = document.getElementById('feedContent');
+            feed.innerHTML = '';
+            
+            statusData.events.forEach(event => {
+                const item = document.createElement('div');
+                item.className = 'feed-item';
+                item.innerHTML = `
+                    <div class="timestamp">${new Date().toLocaleTimeString()}</div>
+                    <div>${event}</div>
+                `;
+                feed.appendChild(item);
+            });
+        }
+
+        // Load status from JSON file
+        async function loadStatus() {
+            try {
+                const response = await fetch('status.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusData = data;
+                    document.getElementById('error').style.display = 'none';
+                } else {
+                    throw new Error('Failed to fetch status');
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+                document.getElementById('error').style.display = 'block';
+            }
+            
+            // Hide loading, show content
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('statusGrid').style.display = 'grid';
+            document.getElementById('activityFeed').style.display = 'block';
+            
+            // Render the dashboard
+            renderStatusCards();
+            renderActivityFeed();
+            
+            // Update timestamp
+            document.getElementById('lastUpdate').textContent = 
+                `Last update: ${new Date().toLocaleString()}`;
+        }
+
+        // Load status on page load
+        loadStatus();
+        
+        // Reload status every 30 seconds
+        setInterval(loadStatus, 30000);
+
+        // Add some random activity for entertainment
+        setInterval(() => {
+            const messages = [
+                '☕ Percolator cycle completed',
+                '🐾 Panthers defense holding strong',
+                '🍭 Candy patrol in sector 7',
+                '🧠 Neural network learning',
+                '⚡ TRIAGE processing requests',
+                '🎙️ Voice command recognized',
+                '🏈 Touchdown! 99.9% uptime',
+                '🎪 Maximum entertainment mode'
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            statusData.events.unshift(randomMessage);
+            statusData.events = statusData.events.slice(0, 10);
+            renderActivityFeed();
+        }, 10000);
+    </script>
+</body>
+</html>

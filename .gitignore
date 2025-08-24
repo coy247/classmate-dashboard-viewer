@@ -1,0 +1,31 @@
+# Security - DO NOT COMMIT THESE
+*.key
+*.pem
+*.env
+.env.*
+secrets/
+credentials/
+
+# Local configuration
+local-config.json
+dev-status.json
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# The update script should stay local
+# (uncomment if you want to keep it out of the repo)
+# update_status.sh
