@@ -44,18 +44,28 @@ update_status() {
         TRIAGE_STATUS="degraded"
     fi
     
-    # Generate random entertaining events
+    # Generate random entertaining events - SPORTS ANNOUNCER STYLE!
     EVENTS=(
-        "☕ Percolator cycle completed at $(date +%H:%M)"
-        "🐾 Panthers defense intercepted suspicious packet"
-        "🍭 Candy Consortium K-Pop squad performed security dance"
-        "🧠 Neural network achieved coffee enlightenment"
-        "⚡ TRIAGE CLI processed batch faster than light"
-        "🎙️ VOICE System heard the call of the percolator"
-        "🏈 Service uptime touchdown! 99.9% achieved"
-        "🎪 Maximum entertainment mode activated"
-        "📡 Satellite uplink with Charlotte established"
-        "🔐 Security check: No Bills fans detected in vicinity"
+        "🎙️ GOOOOOAL! Percolator cycle COMPLETES at $(date +%H:%M) - UNSTOPPABLE!"
+        "🏈 INTERCEPTION! Panthers defense DESTROYS suspicious packet at the 50-yard line!"
+        "🎯 UNBELIEVABLE! Candy Consortium K-Pop squad performs FLAWLESS security choreography!"
+        "🔥 FROM THE TOP ROPE! Neural network SLAMS coffee enlightenment with a PERFECT 10!"
+        "⚡ SPEED DEMON! TRIAGE CLI processes batch in $(( $RANDOM % 50 + 10 ))ms - NEW RECORD!"
+        "🎙️ THE CROWD GOES WILD! VOICE System channels the SPIRIT of the percolator!"
+        "🏈 TOUCHDOWN! TOUCHDOWN! Service uptime hits 99.$(( $RANDOM % 9 ))% - CHAMPIONSHIP NUMBERS!"
+        "🎪 SHOWTIME BABY! Maximum entertainment mode ACTIVATED - THE FANS ARE ON THEIR FEET!"
+        "📡 BREAKING: Satellite uplink with Charlotte LOCKED IN - Signal strength MAXED OUT!"
+        "🚨 DEFENSIVE MASTERPIECE! ZERO Bills fans detected - SHUTOUT CONTINUES!"
+        "☕ HE SHOOTS, HE SCORES! Percolator drains a BUZZER-BEATER of pure Colombian!"
+        "💥 EXPLOSIVE! SAMMY Service response time OBLITERATES previous record!"
+        "🏆 HALL OF FAME PERFORMANCE! All systems operating at LEGENDARY status!"
+        "🐾 PANTHERS PRIDE! Defense holding stronger than Fort Knox at port 8443!"
+        "⚡ LIGHTNING ROUND! $(( $RANDOM % 1000 + 500 )) requests processed in ONE SECOND!"
+        "🎯 PRECISION STRIKE! Security scan finds ABSOLUTELY NOTHING - PERFECT GAME!"
+        "🔥 ON FIRE! Neural Network learning rate EXCEEDS all expectations!"
+        "🎪 CIRCUS CATCH! CONSORTIUM self-heals before we even noticed the problem!"
+        "☕ OVERTIME THRILLER! Percolator enters BEAST MODE at $(date +%H:%M:%S)!"
+        "🏈 FOURTH QUARTER MAGIC! Services rally for INCREDIBLE comeback performance!"
     )
     
     # Select random events
