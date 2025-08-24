@@ -77,6 +77,14 @@ trap cleanup SIGINT SIGTERM
 perform_update() {
     log_message INFO "Starting dashboard update cycle..."
     
+    # Security validation first
+    if [ -x "./quantum_security_validator.sh" ]; then
+        ./quantum_security_validator.sh status.json 2>/dev/null || {
+            log_message ERROR "SECURITY-VALIDATION-FAILED-ABORTING"
+            return 1
+        }
+    fi
+    
     cd "$DASHBOARD_DIR" || {
         log_message ERROR "Failed to change to dashboard directory"
         return 1
