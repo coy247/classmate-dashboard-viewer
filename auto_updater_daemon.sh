@@ -113,15 +113,25 @@ perform_update() {
     # Check Apple Music status - ONLY report if single repeat is on
     MUSIC_STATUS=""
     if [ -x "./apple_music_monitor.sh" ]; then
-        MUSIC_JSON=$(./apple_music_monitor.sh monitor 2>/dev/null | tail -n 11 | head -n 10)
-        if echo "$MUSIC_JSON" | grep -q "apple_music"; then
-            MUSIC_TRACK=$(echo "$MUSIC_JSON" | grep '"track"' | cut -d'"' -f4)
-            MUSIC_ARTIST=$(echo "$MUSIC_JSON" | grep '"artist"' | cut -d'"' -f4)
-            MUSIC_REPEAT=$(echo "$MUSIC_JSON" | grep '"repeat_mode"' | cut -d'"' -f4)
-            MUSIC_TOTAL=$(echo "$MUSIC_JSON" | grep '"total_plays"' | cut -d':' -f2 | cut -d',' -f1 | tr -d ' ')
+        # Get the full output first
+        FULL_OUTPUT=$(./apple_music_monitor.sh monitor 2>/dev/null)
+        
+        # Extract just the JSON part (last 10 lines)
+        MUSIC_JSON=$(echo "$FULL_OUTPUT" | tail -n 10)
+        
+        # Check if we have valid JSON with apple_music
+        if echo "$MUSIC_JSON" | grep -q '"apple_music"'; then
+            # Extract fields more reliably
+            MUSIC_TRACK=$(echo "$MUSIC_JSON" | grep '"track":' | sed 's/.*"track": "\([^"]*\)".*/\1/')
+            MUSIC_ARTIST=$(echo "$MUSIC_JSON" | grep '"artist":' | sed 's/.*"artist": "\([^"]*\)".*/\1/')
+            MUSIC_REPEAT=$(echo "$MUSIC_JSON" | grep '"repeat_mode":' | sed 's/.*"repeat_mode": "\([^"]*\)".*/\1/')
+            MUSIC_TOTAL=$(echo "$MUSIC_JSON" | grep '"total_plays":' | sed 's/.*"total_plays": \([0-9]*\).*/\1/')
+            
+            # Debug log
+            log_message INFO "Music detected: $MUSIC_ARTIST - $MUSIC_TRACK | Repeat: $MUSIC_REPEAT | Plays: $MUSIC_TOTAL"
             
             # ONLY create status if repeat mode is "one" (single repeat)
-            if [ "$MUSIC_REPEAT" = "one" ] && [ "$MUSIC_TOTAL" -gt 0 ]; then
+            if [ "$MUSIC_REPEAT" = "one" ] && [ -n "$MUSIC_TOTAL" ] && [ "$MUSIC_TOTAL" -gt 0 ]; then
                 if [ "$MUSIC_TOTAL" -gt 5000 ]; then
                     MUSIC_STATUS="🎙️ HALL OF FAME! $MUSIC_ARTIST - $MUSIC_TRACK on REPEAT! Play #$MUSIC_TOTAL!"
                 elif [ "$MUSIC_TOTAL" -gt 1000 ]; then
@@ -129,9 +139,22 @@ perform_update() {
                 else
                     MUSIC_STATUS="🎵 ON REPEAT: $MUSIC_ARTIST - $MUSIC_TRACK (#$MUSIC_TOTAL)"
                 fi
+                log_message INFO "Music status set: $MUSIC_STATUS"
             fi
-            # Don't report anything if repeat is not on
         fi
+    fi
+    
+    # Track recursion
+    RECURSION_STATUS=""
+    if [ -x "./recursion_monitor.sh" ]; then
+        ./recursion_monitor.sh track >/dev/null 2>&1
+        RECURSION_STATUS=$(./recursion_monitor.sh status 2>/dev/null)
+    fi
+    
+    # Get PSA educational content
+    PSA_MESSAGE=""
+    if [ -x "./psa_generator.sh" ]; then
+        PSA_MESSAGE=$(./psa_generator.sh get 2>/dev/null | head -n 1)
     fi
     
     # Get neural state and unique events
@@ -156,53 +179,79 @@ perform_update() {
     DASHBOARD_NUM=$(( $RANDOM % 5 + 10 ))
     UPTIME_HOURS=$(( $(date +%s) / 3600 % 1000 ))
     
-    # Build unique event array
-    UNIQUE_EVENTS=()
-    UNIQUE_EVENTS+=("🎙️ LIVE UPDATE at $CURRENT_TIME | Systems: OPTIMAL")
-    UNIQUE_EVENTS+=("⚡ Response time: ${SYSTEM_LATENCY}ms | Cloud sync: SUCCESS")
+    # Build unique sports announcer events
+    SPORTS_EVENTS=()
     
-    # Add service-specific dynamic events
+    # Dynamic commentary based on time and status
+    SPORTS_EVENTS+=("🎙️ LIVE from the dashboard at $CURRENT_TIME!")
+    
     if [ "$SAMMY_STATUS" = "operational" ]; then
-        UNIQUE_EVENTS+=("🛡️ SAMMY fortress IMPENETRABLE at port 8443!")
+        SPORTS_EVENTS+=("🏈 SAMMY's DEFENSIVE LINE is UNSTOPPABLE at port 8443!")
     else
-        UNIQUE_EVENTS+=("🔧 SAMMY rebuilding defenses...")
+        SPORTS_EVENTS+=("⚠️ SAMMY's taking a timeout for repairs...")
     fi
     
-    # Add time-based variety
+    # Add excitement variety
+    EXCITEMENT=("INCREDIBLE!" "UNBELIEVABLE!" "SPECTACULAR!" "PHENOMENAL!" "AMAZING!" "OUTSTANDING!")
+    RANDOM_EXCITEMENT="${EXCITEMENT[$RANDOM % ${#EXCITEMENT[@]}}]"
+    SPORTS_EVENTS+=("⚡ ${RANDOM_EXCITEMENT} Response time: ${SYSTEM_LATENCY}ms!")
+    
+    # Time-based stadium atmosphere
     HOUR=$(date +%H)
     if [ $HOUR -ge 6 ] && [ $HOUR -lt 12 ]; then
-        UNIQUE_EVENTS+=("☕ Morning percolation at MAXIMUM")
+        SPORTS_EVENTS+=("☕ THE MORNING CROWD IS CAFFEINATED AND READY!")
     elif [ $HOUR -ge 12 ] && [ $HOUR -lt 18 ]; then
-        UNIQUE_EVENTS+=("🌞 Afternoon systems: BLAZING FAST")
+        SPORTS_EVENTS+=("🌞 THE AFTERNOON HEAT CAN'T STOP THIS PERFORMANCE!")
     elif [ $HOUR -ge 18 ] && [ $HOUR -lt 22 ]; then
-        UNIQUE_EVENTS+=("🌆 Evening patrol: ALL CLEAR")
+        SPORTS_EVENTS+=("🌆 PRIME TIME PERFORMANCE UNDER THE LIGHTS!")
     else
-        UNIQUE_EVENTS+=("🌙 Night watch: VIGILANT")
+        SPORTS_EVENTS+=("🌙 THE NIGHT SHIFT NEVER SLEEPS!")
     fi
+    
+    # Fun stats commentary
+    SPORTS_EVENTS+=("📊 Dashboard #$DASHBOARD_NUM bringing the HEAT!")
+    SPORTS_EVENTS+=("🏆 Uptime streak: LEGENDARY!")
     
     # Build events array with no duplicates
     EVENT_ARRAY=()
     
-    # Add music status if available
+    # Priority 1: Music status (if available)
     if [ -n "$MUSIC_STATUS" ]; then
         EVENT_ARRAY+=("$MUSIC_STATUS")
     fi
     
-    # Add neural events (already unique from neural_state.sh)
-    for event in "${NEURAL_EVENTS[@]:0:3}"; do
-        if [ -n "$event" ]; then
-            EVENT_ARRAY+=("$event")
+    # Priority 2: PSA educational content
+    if [ -n "$PSA_MESSAGE" ]; then
+        EVENT_ARRAY+=("$PSA_MESSAGE")
+    fi
+    
+    # Priority 3: Recursion monitoring (if interesting)
+    if [ -n "$RECURSION_STATUS" ]; then
+        EVENT_ARRAY+=("$RECURSION_STATUS")
+    fi
+    
+    # Priority 4: Sports announcer commentary (2-3 items)
+    for ((i=0; i<${#SPORTS_EVENTS[@]} && i<2; i++)); do
+        EVENT_ARRAY+=("${SPORTS_EVENTS[$i]}")
+    done
+    
+    # Priority 5: Neural events (1-2 items)
+    for ((i=0; i<${#NEURAL_EVENTS[@]} && i<2; i++)); do
+        if [ -n "${NEURAL_EVENTS[$i]}" ]; then
+            EVENT_ARRAY+=("${NEURAL_EVENTS[$i]}")
         fi
     done
     
-    # Add unique dynamic events
-    EVENT_ARRAY+=("${UNIQUE_EVENTS[@]:0:3}")
+    # Add a final status line
+    EVENT_ARRAY+=("🤖 Auto-update cycle #$N_EPOCHS | Next in ${UPDATE_INTERVAL}s")
     
-    # Ensure we have at least 8 events, pad if needed
+    # Ensure exactly 8 events (no more, no less)
     while [ ${#EVENT_ARRAY[@]} -lt 8 ]; do
-        EVENT_ARRAY+=("🔄 Monitoring cycle #$N_EPOCHS active")
-        break
+        EVENT_ARRAY+=("${SPORTS_EVENTS[$((RANDOM % ${#SPORTS_EVENTS[@]}))}]}")
     done
+    
+    # Trim to exactly 8 if we have more
+    EVENT_ARRAY=("${EVENT_ARRAY[@]:0:8}")
     
     # Create updated status.json with neural state persistence
     cat > status.json << EOF
