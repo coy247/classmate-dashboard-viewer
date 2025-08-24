@@ -44,6 +44,33 @@ update_status() {
         TRIAGE_STATUS="degraded"
     fi
     
+    # Check Apple Music status
+    MUSIC_STATUS=""
+    if [ -x "./apple_music_monitor.sh" ]; then
+        MUSIC_JSON=$(./apple_music_monitor.sh monitor 2>/dev/null | tail -n 11 | head -n 10)
+        if echo "$MUSIC_JSON" | grep -q "apple_music"; then
+            # Extract music data
+            MUSIC_TRACK=$(echo "$MUSIC_JSON" | grep '"track"' | cut -d'"' -f4)
+            MUSIC_ARTIST=$(echo "$MUSIC_JSON" | grep '"artist"' | cut -d'"' -f4)
+            MUSIC_REPEAT=$(echo "$MUSIC_JSON" | grep '"repeat_mode"' | cut -d'"' -f4)
+            MUSIC_SESSION=$(echo "$MUSIC_JSON" | grep '"session_plays"' | cut -d':' -f2 | cut -d',' -f1 | tr -d ' ')
+            MUSIC_TOTAL=$(echo "$MUSIC_JSON" | grep '"total_plays"' | cut -d':' -f2 | cut -d',' -f1 | tr -d ' ')
+            
+            # Generate epic music commentary
+            if [ "$MUSIC_REPEAT" = "one" ] && [ "$MUSIC_TOTAL" -gt 0 ]; then
+                if [ "$MUSIC_TOTAL" -gt 5000 ]; then
+                    MUSIC_STATUS="🎙️ HALL OF FAME ALERT! $MUSIC_ARTIST - $MUSIC_TRACK on ETERNAL REPEAT! Play #$MUSIC_TOTAL - LEGENDARY!"
+                elif [ "$MUSIC_TOTAL" -gt 1000 ]; then
+                    MUSIC_STATUS="🔥 REPEAT CHAMPIONSHIP! $MUSIC_ARTIST - $MUSIC_TRACK for the ${MUSIC_TOTAL}th time! OBSESSION LEVEL: MAXIMUM!"
+                else
+                    MUSIC_STATUS="🎵 REPEAT MODE ACTIVATED! $MUSIC_ARTIST - $MUSIC_TRACK (Play #$MUSIC_TOTAL) - Can't stop, won't stop!"
+                fi
+            elif [ -n "$MUSIC_TRACK" ] && [ "$MUSIC_TRACK" != "Unknown" ]; then
+                MUSIC_STATUS="🎶 NOW PLAYING: $MUSIC_ARTIST - $MUSIC_TRACK (Lifetime: $MUSIC_TOTAL plays)"
+            fi
+        fi
+    fi
+    
     # Generate random entertaining events - SPORTS ANNOUNCER STYLE!
     EVENTS=(
         "🎙️ GOOOOOAL! Percolator cycle COMPLETES at $(date +%H:%M) - UNSTOPPABLE!"
@@ -133,6 +160,7 @@ update_status() {
     }
   ],
   "events": [
+    "${MUSIC_STATUS:-🎵 Apple Music status: No track playing}",
     "${RANDOM_EVENT1}",
     "${RANDOM_EVENT2}",
     "${RANDOM_EVENT3}",
