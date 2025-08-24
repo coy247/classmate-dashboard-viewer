@@ -781,8 +781,15 @@ A rival mascot has infiltrated the queue!
                 // Update message
                 document.getElementById('message').textContent = data.message || '';
                 
-                // Check bar status from events
-                const musicEvent = data.events.find(e => e.includes('REPEAT') || e.includes('ON REPEAT'));
+                // Check bar status from events - look for any music playing indicators
+                const musicEvent = data.events.find(e => 
+                    e.includes('REPEAT') || 
+                    e.includes('ON REPEAT') || 
+                    e.includes('OBSESSION') || 
+                    e.includes('LOOP CHAMPION') || 
+                    e.includes('HALL OF FAME') ||
+                    (e.includes('x1') && (e.includes('Hechizeros') || e.includes('Sonidito')))
+                );
                 updateBarStatus(!!musicEvent);
                 
                 // Update services
