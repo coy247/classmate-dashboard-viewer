@@ -56,6 +56,9 @@
     }
   ],
   "events": [
+    "🚨 PRIORITY RECOVERY: Percolator by Cajmere - User waited 7+ minutes! Now queued NEXT!",
+    "⚠️ DJ APOLOGY: Sorry for the delay on Percolator - playing right after Madonna!",
+    "🎧 Queued: \"Percolator\" by Cajmere — Requested by Dashboard User — Dedication: Been waiting 7+ minutes - PRIORITY dashboard-recovery",
     "⚠️ DJ LESSON LEARNED: Never interrupt current song! Queue respectfully!",
     "🎧 Songs queued for Up Next after Madonna finishes",
     "🎉💜 VIP OVERRIDE ACTIVE: Madonna's 'Impressive Instant' NOW PLAYING with 1111 repeats! Dance floor SAVED! 💃🕺",
@@ -78,6 +81,6 @@
     "📊 Dashboard refresh completed",
     "✅ Health check passed with flying colors"
   ],
-  "timestamp": "2025-08-25T07:32:45Z",
-  "message": "🎵 Madonna Impressive Instant - Playing respectfully (1111 repeats queued)"
+  "timestamp": "2025-08-25T07:41:45Z",
+  "message": "🎧 URGENT: Percolator queued next (7 min wait!)"
 }
