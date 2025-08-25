@@ -596,11 +596,57 @@
             container.innerHTML = html || '<p>No history yet. Events will appear here.</p>';
         }
         
-        // Update dashboard
+        // Recovery state management
+        let lastKnownGoodData = null;
+        let recoveryAttempts = 0;
+        const MAX_RECOVERY_ATTEMPTS = 3;
+        
+        // Save backup state
+        function saveBackupState(data) {
+            lastKnownGoodData = data;
+            try {
+                localStorage.setItem('djDashboardBackup', JSON.stringify(data));
+                localStorage.setItem('backupTime', new Date().toISOString());
+            } catch(e) {
+                console.warn('Could not save backup:', e);
+            }
+        }
+        
+        // Recover from backup
+        function recoverFromBackup() {
+            try {
+                const backup = localStorage.getItem('djDashboardBackup');
+                if (backup) {
+                    console.log('Recovering from backup');
+                    return JSON.parse(backup);
+                }
+            } catch(e) {
+                console.warn('Backup recovery failed:', e);
+            }
+            
+            // Return fallback state
+            return {
+                services: [],
+                events: ['🔄 Dashboard recovering...', '⚡ Reconnecting...'],
+                message: 'Recovery mode active',
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Update dashboard with recovery
         async function updateDashboard() {
             try {
                 const response = await fetch('status.json?t=' + Date.now());
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch status');
+                }
+                
                 const data = await response.json();
+                
+                // Save as backup if successful
+                saveBackupState(data);
+                recoveryAttempts = 0;  // Reset recovery counter
                 
                 // Update timestamp
                 document.getElementById('timestamp').textContent = 
@@ -634,6 +680,31 @@
                 
             } catch (error) {
                 console.error('Error updating dashboard:', error);
+                recoveryAttempts++;
+                
+                // Try to recover from backup
+                if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
+                    console.log(`Recovery attempt ${recoveryAttempts}/${MAX_RECOVERY_ATTEMPTS}`);
+                    const backupData = recoverFromBackup();
+                    
+                    if (backupData) {
+                        // Update with backup data
+                        document.getElementById('timestamp').textContent = 
+                            'Last Updated: ' + new Date(backupData.timestamp).toLocaleString() + ' (RECOVERY MODE)';
+                        document.getElementById('message').textContent = 
+                            backupData.message + ' [Recovered from backup]';
+                        updateServices(backupData.services || []);
+                        updateEvents(backupData.events || []);
+                        
+                        // Add recovery notice to history
+                        addToHistory('🔄 Dashboard recovered from backup due to connection issue');
+                    }
+                } else {
+                    // Too many failures, show error state
+                    document.getElementById('message').textContent = 
+                        '⚠️ Connection issues - retrying...';
+                    addToHistory('⚠️ Multiple connection failures detected');
+                }
             }
         }
         
@@ -681,12 +752,45 @@
             }).join('');
         }
         
-        // Update events list
+        // Minimal confetti overlay (CSS-only enhancements, no layout changes)
+        const confettiStyle = document.createElement('style');
+        confettiStyle.textContent = `
+        .confetti-container{pointer-events:none;position:fixed;inset:0;z-index:9999;display:none}
+        .confetti{position:absolute;width:8px;height:14px;opacity:.9;will-change:transform}
+        .confetti.c1{background:#ffd700}.confetti.c2{background:#ff69b4}.confetti.c3{background:#00e5ff}.confetti.c4{background:#8a2be2}.confetti.c5{background:#32cd32}
+        @keyframes fall{0%{transform:translateY(-10vh) rotate(0deg)}100%{transform:translateY(110vh) rotate(720deg)}}`;
+        document.head.appendChild(confettiStyle);
+        const confettiContainer = document.createElement('div');
+        confettiContainer.className = 'confetti-container';
+        document.body.appendChild(confettiContainer);
+        function launchConfetti(durationMs=1500){
+            confettiContainer.innerHTML='';
+            const count = 80;
+            for(let i=0;i<count;i++){
+                const c = document.createElement('div');
+                c.className = 'confetti c'+(1+Math.floor(Math.random()*5));
+                c.style.left = Math.random()*100+'%';
+                c.style.top = '-10vh';
+                c.style.animation = `fall ${1+Math.random()*1.5}s ease-out forwards`;
+                c.style.transform = `translateY(-10vh)`;
+                confettiContainer.appendChild(c);
+            }
+            confettiContainer.style.display='block';
+            setTimeout(()=>{confettiContainer.style.display='none';}, durationMs);
+        }
+
+        // Update events
         function updateEvents(events) {
             const list = document.getElementById('eventsList');
             list.innerHTML = events.map(event => 
                 `<li class="event-item">${event}</li>`
             ).join('');
+
+            // Trigger celebration if bar is open and an event indicates next song or now playing
+            const celebratory = events.find(e => /NOW PLAYING|Queued:|Advance to next|Next song/i.test(e));
+            if (barOpen && celebratory) {
+                launchConfetti(1800);
+            }
         }
         
         // Initialize
